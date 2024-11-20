@@ -1,0 +1,18 @@
+# Define the username of the account to delete
+$Username = "Admin2"
+
+# Access the local computer ADSI object
+$adsi = [ADSI]"WinNT://$env:COMPUTERNAME"
+
+# Check if the user exists
+$existing = $adsi.Children | Where-Object { $_.Name -eq $Username }
+
+if ($existing -ne $null) {
+    Write-Host "Deleting local user $Username."
+    & NET USER $Username /delete
+    Write-Host "User $Username has been deleted."
+} else {
+    Write-Host "User $Username does not exist. No action taken."
+}
+
+exit
