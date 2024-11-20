@@ -53,10 +53,10 @@ function Get-Creds {
             [Environment]::UserDomainName
         )
 
-        # If the user cancels (null returned), we skip the check and re-prompt
+        # Check if the user canceled the prompt (returns null when canceled)
         if ($cred -eq $null) {
             Add-Type -AssemblyName PresentationCore,PresentationFramework
-            $msgBody = "You must enter credentials."
+            $msgBody = "No credentials were provided. Please try again."
             $msgTitle = "Error"
             $msgButton = 'Ok'
             $msgImage = 'Stop'
@@ -80,6 +80,7 @@ function Get-Creds {
         }
     }
 }
+
 
 
 
