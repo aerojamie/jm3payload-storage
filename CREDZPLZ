@@ -52,20 +52,33 @@ function Get-Creds {
             [Environment]::UserDomainName
         )
 
-        $password = $cred.GetNetworkCredential().Password
-        if ([string]::IsNullOrWhiteSpace($password)) {
-            Add-Type -AssemblyName PresentationCore,PresentationFramework
+        # Ensure that the credential object is not null
+        if ($cred -ne $null) {
+            $password = $cred.GetNetworkCredential().Password
 
-            $msgBody = "Credentials cannot be empty!"
+            if ([string]::IsNullOrWhiteSpace($password)) {
+                Add-Type -AssemblyName PresentationCore,PresentationFramework
+
+                $msgBody = "Credentials cannot be empty!"
+                $msgTitle = "Error"
+                $msgButton = 'Ok'
+                $msgImage = 'Stop'
+                [System.Windows.MessageBox]::Show($msgBody, $msgTitle, $msgButton, $msgImage)
+            } else {
+                return $cred.GetNetworkCredential()
+            }
+        } else {
+            # If no credential was returned, show an error and re-prompt
+            Add-Type -AssemblyName PresentationCore,PresentationFramework
+            $msgBody = "No credentials were provided. Please try again."
             $msgTitle = "Error"
             $msgButton = 'Ok'
             $msgImage = 'Stop'
             [System.Windows.MessageBox]::Show($msgBody, $msgTitle, $msgButton, $msgImage)
-        } else {
-            return $cred.GetNetworkCredential()
         }
     }
 }
+
 
 #------------------------------------------------------------------------------------------------------------------------------------
 
