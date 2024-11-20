@@ -1,5 +1,5 @@
 # Define the username of the account to delete
-$Username = "Admin2"
+$Username = "Admin"
 
 # Access the local computer ADSI object
 $adsi = [ADSI]"WinNT://$env:COMPUTERNAME"
