@@ -1,6 +1,6 @@
 # Define variables
 $Username = "Admin"
-$Password = "password"
+$Password = "JM3"
 $Group = "Administrators"
 
 # Access the local computer ADSI object
